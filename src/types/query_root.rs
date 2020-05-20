@@ -84,7 +84,7 @@ impl<T: ObjectType + Send + Sync> ObjectType for QueryRoot<T> {
             if self.disable_introspection {
                 return Err(Error::Query {
                     pos: ctx.position(),
-                    path: Some(ctx.path_node.as_ref().unwrap().to_json()),
+                    path: Some(ctx.path_node.as_ref().unwrap().to_json().into()),
                     err: QueryError::FieldNotFound {
                         field_name: ctx.name.to_string(),
                         object: Self::type_name().to_string(),

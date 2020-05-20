@@ -196,7 +196,7 @@ impl<'a> QueryPathNode<'a> {
     }
 
     #[doc(hidden)]
-    pub fn to_json(&self) -> serde_json::Value {
+    pub fn to_json(&self) -> Vec<serde_json::Value> {
         let mut path: Vec<serde_json::Value> = Vec::new();
         self.for_each(|segment| {
             path.push(match segment {
@@ -204,50 +204,9 @@ impl<'a> QueryPathNode<'a> {
                 QueryPathSegment::Name(name) => (*name).to_string().into(),
             })
         });
-        path.into()
+        path
     }
 }
-
-pub(crate) enum QueryPathSegmentOwned {
-    Index(usize),
-    Name(String),
-}
-
-pub(crate) struct QueryPathNodeOwned {
-    pub parent: Option<Box<QueryPathNodeOwned>>,
-    pub segment: QueryPathSegmentOwned,
-}
-
-impl<'a> From<&QueryPathNode<'a>> for QueryPathNodeOwned {
-    fn from(node: &QueryPathNode<'a>) -> Self {
-        let parent = match &node.parent {
-            Some(parent) => Some(QueryPathNodeOwned::from(*parent)),
-            None => None,
-        };
-        let segment = match &node.segment {
-            QueryPathSegment::Name(name) => QueryPathSegmentOwned::Name(name.to_string()),
-            QueryPathSegment::Index(idx) => QueryPathSegmentOwned::Index(*idx),
-        };
-        QueryPathNodeOwned {
-            parent: parent.map(Box::new),
-            segment,
-        }
-    }
-}
-
-// impl QueryPathNodeOwned {
-//     fn to_borrowed(&self) -> QueryPathNode {
-//         let parent = match &self.parent {
-//             Some(parent) => Some(parent.to_borrowed()),
-//             None => None,
-//         };
-//         let segment = match &node.segment {
-//             QueryPathSegmentOwned::Name(name) => QueryPathSegment::Name(name.as_str()),
-//             QueryPathSegmentOwned::Index(idx) => QueryPathSegment::Index(*idx),
-//         };
-//         QueryPathNode { parent, segment }
-//     }
-// }
 
 /// Represents the unique id of the resolve
 #[derive(Copy, Clone, Debug)]
@@ -283,19 +242,17 @@ pub type BoxDeferFuture =
     Pin<Box<dyn Future<Output = Result<(QueryResponse, DeferList)>> + Send + 'static>>;
 
 #[doc(hidden)]
-#[derive(Default)]
-pub struct DeferList(pub Mutex<Vec<BoxDeferFuture>>);
+pub struct DeferList {
+    pub path_prefix: Vec<serde_json::Value>,
+    pub futures: Mutex<Vec<BoxDeferFuture>>,
+}
 
 impl DeferList {
-    pub(crate) fn into_inner(self) -> Vec<BoxDeferFuture> {
-        self.0.into_inner()
-    }
-
     pub(crate) fn append<F>(&self, fut: F)
     where
         F: Future<Output = Result<(QueryResponse, DeferList)>> + Send + 'static,
     {
-        self.0.lock().push(Box::pin(fut));
+        self.futures.lock().push(Box::pin(fut));
     }
 }
 

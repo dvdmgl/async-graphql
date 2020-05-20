@@ -4,6 +4,9 @@ use crate::{ContextSelectionSet, OutputValueType, Pos, QueryResponse, Result, Ty
 use std::borrow::Cow;
 use std::sync::atomic::AtomicUsize;
 
+/// Deferred type
+///
+/// Allows to defer the type of results returned, Only takes effect when the @defer directive exists on the field.
 pub struct Deferred<T: Type + Send + Sync + Clone + 'static>(T);
 
 impl<T: Type + Send + Sync + Clone + 'static> From<T> for Deferred<T> {
@@ -30,10 +33,18 @@ impl<T: OutputValueType + Send + Sync + Clone + 'static> OutputValueType for Def
             let schema_env = ctx.schema_env.clone();
             let query_env = ctx.query_env.clone();
             let field_selection_set = ctx.item.clone();
-            let mut full_path = ctx.path_node.as_ref().map(|path| path.to_json());
+            let path_prefix = ctx
+                .path_node
+                .as_ref()
+                .map(|path| path.to_json())
+                .unwrap_or_default();
+
             defer_list.append(async move {
                 let inc_resolve_id = AtomicUsize::default();
-                let defer_list = DeferList::default();
+                let defer_list = DeferList {
+                    path_prefix: path_prefix.clone(),
+                    futures: Default::default(),
+                };
                 let ctx = query_env.create_context(
                     &schema_env,
                     None,
@@ -42,17 +53,10 @@ impl<T: OutputValueType + Send + Sync + Clone + 'static> OutputValueType for Def
                     Some(&defer_list),
                 );
                 let data = obj.resolve(&ctx, pos).await?;
-                if let Some(serde_json::Value::Array(full_path)) = full_path.as_mut() {
-                    if let Some(serde_json::Value::Array(path)) =
-                        ctx.path_node.as_ref().map(|path| path.to_json())
-                    {
-                        full_path.extend(path);
-                    }
-                }
 
                 Ok((
                     QueryResponse {
-                        path: full_path,
+                        path: Some(path_prefix.into()),
                         data,
                         extensions: None,
                         cache_control: Default::default(),

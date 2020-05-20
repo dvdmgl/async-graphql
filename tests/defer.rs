@@ -1,4 +1,5 @@
 use async_graphql::*;
+use futures::StreamExt;
 
 #[async_std::test]
 pub async fn test_defer() {
@@ -61,4 +62,33 @@ pub async fn test_defer() {
             }
         })
     );
+
+    let mut stream = schema.execute_stream(&query).await;
+    assert_eq!(
+        stream.next().await.unwrap().unwrap().data,
+        serde_json::json!({
+            "value": null,
+            "obj": null,
+        })
+    );
+
+    let next_resp = stream.next().await.unwrap().unwrap();
+    assert_eq!(next_resp.path, Some(vec![serde_json::json!("value")]));
+    assert_eq!(next_resp.data, serde_json::json!(10));
+
+    let next_resp = stream.next().await.unwrap().unwrap();
+    assert_eq!(next_resp.path, Some(vec![serde_json::json!("obj")]));
+    assert_eq!(
+        next_resp.data,
+        serde_json::json!({"value": 20, "obj": null})
+    );
+
+    let next_resp = stream.next().await.unwrap().unwrap();
+    assert_eq!(
+        next_resp.path,
+        Some(vec![serde_json::json!("obj"), serde_json::json!("obj")])
+    );
+    assert_eq!(next_resp.data, serde_json::json!({"value": 20}));
+
+    assert!(stream.next().await.is_none());
 }

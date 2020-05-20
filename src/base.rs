@@ -235,7 +235,7 @@ impl<T: OutputValueType + Sync> OutputValueType for FieldResult<T> {
                 pos,
                 match &ctx.path_node {
                     Some(path) => path.to_json(),
-                    None => serde_json::Value::Null,
+                    None => Vec::new(),
                 },
             )),
         }
