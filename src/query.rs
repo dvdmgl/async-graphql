@@ -315,6 +315,7 @@ impl QueryBuilder {
         let mut stream = self.execute_stream(schema).await;
         let mut resp = stream.next().await.unwrap()?;
         while let Some(resp_part) = stream.next().await.transpose()? {
+            println!("{:?}", resp_part);
             resp.merge(resp_part);
         }
         Ok(resp)

@@ -30,7 +30,7 @@ impl<T: OutputValueType + Send + Sync + Clone + 'static> OutputValueType for Def
             let schema_env = ctx.schema_env.clone();
             let query_env = ctx.query_env.clone();
             let field_selection_set = ctx.item.clone();
-            let path = ctx.path_node.as_ref().map(|path| path.to_json());
+            let mut full_path = ctx.path_node.as_ref().map(|path| path.to_json());
             defer_list.append(async move {
                 let inc_resolve_id = AtomicUsize::default();
                 let defer_list = DeferList::default();
@@ -42,10 +42,17 @@ impl<T: OutputValueType + Send + Sync + Clone + 'static> OutputValueType for Def
                     Some(&defer_list),
                 );
                 let data = obj.resolve(&ctx, pos).await?;
+                if let Some(serde_json::Value::Array(full_path)) = full_path.as_mut() {
+                    if let Some(serde_json::Value::Array(path)) =
+                        ctx.path_node.as_ref().map(|path| path.to_json())
+                    {
+                        full_path.extend(path);
+                    }
+                }
 
                 Ok((
                     QueryResponse {
-                        path,
+                        path: full_path,
                         data,
                         extensions: None,
                         cache_control: Default::default(),

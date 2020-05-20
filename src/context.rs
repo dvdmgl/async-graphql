@@ -208,6 +208,47 @@ impl<'a> QueryPathNode<'a> {
     }
 }
 
+pub(crate) enum QueryPathSegmentOwned {
+    Index(usize),
+    Name(String),
+}
+
+pub(crate) struct QueryPathNodeOwned {
+    pub parent: Option<Box<QueryPathNodeOwned>>,
+    pub segment: QueryPathSegmentOwned,
+}
+
+impl<'a> From<&QueryPathNode<'a>> for QueryPathNodeOwned {
+    fn from(node: &QueryPathNode<'a>) -> Self {
+        let parent = match &node.parent {
+            Some(parent) => Some(QueryPathNodeOwned::from(*parent)),
+            None => None,
+        };
+        let segment = match &node.segment {
+            QueryPathSegment::Name(name) => QueryPathSegmentOwned::Name(name.to_string()),
+            QueryPathSegment::Index(idx) => QueryPathSegmentOwned::Index(*idx),
+        };
+        QueryPathNodeOwned {
+            parent: parent.map(Box::new),
+            segment,
+        }
+    }
+}
+
+// impl QueryPathNodeOwned {
+//     fn to_borrowed(&self) -> QueryPathNode {
+//         let parent = match &self.parent {
+//             Some(parent) => Some(parent.to_borrowed()),
+//             None => None,
+//         };
+//         let segment = match &node.segment {
+//             QueryPathSegmentOwned::Name(name) => QueryPathSegment::Name(name.as_str()),
+//             QueryPathSegmentOwned::Index(idx) => QueryPathSegment::Index(*idx),
+//         };
+//         QueryPathNode { parent, segment }
+//     }
+// }
+
 /// Represents the unique id of the resolve
 #[derive(Copy, Clone, Debug)]
 pub struct ResolveId {
