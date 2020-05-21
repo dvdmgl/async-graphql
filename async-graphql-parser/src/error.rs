@@ -4,11 +4,13 @@ use pest::RuleType;
 use std::fmt;
 
 /// Parser error
-#[derive(Error, Debug, PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct Error {
     pub pos: Pos,
     pub message: String,
 }
+
+impl std::error::Error for Error {}
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
