@@ -73,6 +73,14 @@ pub type InputValueResult<T> = std::result::Result<T, InputValueError>;
 #[derive(Clone, Debug)]
 pub struct FieldError(pub String, pub Option<serde_json::Value>);
 
+impl std::fmt::Display for FieldError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+
+impl std::error::Error for FieldError {}
+
 impl FieldError {
     #[doc(hidden)]
     pub fn into_error(self, pos: Pos) -> Error {
