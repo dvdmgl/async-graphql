@@ -2,7 +2,7 @@ use crate::context::Data;
 use crate::http::{GQLError, GQLRequest, GQLResponse};
 use crate::{
     FieldError, FieldResult, ObjectType, QueryResponse, Result, Schema, SubscriptionStreams,
-    SubscriptionTransport, SubscriptionType, Variables,
+    SubscriptionTransport, SubscriptionType, Variables, WSConnectionError,
 };
 use bytes::Bytes;
 use std::collections::HashMap;
@@ -125,10 +125,10 @@ impl SubscriptionTransport for WebSocketTransport {
                     }
                     Ok(None)
                 }
-                "connection_terminate" => Err("connection_terminate".into()),
-                _ => Err("Unknown op".into()),
+                "connection_terminate" => Err(WSConnectionError::Terminated.into()),
+                _ => Err(WSConnectionError::UnknownOp.into()),
             },
-            Err(err) => Err(err.into()),
+            Err(err) => Err(WSConnectionError::ParseError(err).into()),
         }
     }
 

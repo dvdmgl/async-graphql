@@ -19,7 +19,7 @@ impl Guard for RoleGuard {
         if ctx.data_opt::<Role>() == Some(&self.role) {
             Ok(())
         } else {
-            Err("Forbidden".into())
+            Err(FieldError("Forbidden".into(), None))
         }
     }
 }
@@ -36,7 +36,7 @@ impl Guard for UserGuard {
         if ctx.data_opt::<Username>().map(|name| &name.0).as_deref() == Some(&self.username) {
             Ok(())
         } else {
-            Err("Forbidden".into())
+            Err(FieldError("Forbidden".into(), None))
         }
     }
 }
@@ -328,7 +328,7 @@ pub async fn test_guard_forward_arguments() {
     impl<'a> Guard for UserGuard<'a> {
         async fn check(&self, ctx: &Context<'_>) -> FieldResult<()> {
             if ctx.data_opt::<ID>() != Some(self.id) {
-                Err("Forbidden".into())
+                Err(FieldError("Forbidden".into(), None))
             } else {
                 Ok(())
             }

@@ -17,6 +17,34 @@ impl<T: Display> From<T> for InputValueError {
     }
 }
 
+/// Websocket Connection Transport Error
+#[derive(Debug)]
+pub enum WSConnectionError {
+    /// Terminated Connection
+    Terminated,
+    /// Unknown Operation
+    UnknownOp,
+    /// Error Parse
+    ParseError(serde_json::Error),
+}
+
+impl std::fmt::Display for WSConnectionError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match *self {
+            Self::Terminated => write!(f, "Connection Terminated"),
+            Self::UnknownOp => write!(f, "Unknown Operation"),
+            Self::ParseError(ref err) => std::fmt::Display::fmt(&err, f),
+        }
+    }
+}
+
+impl std::error::Error for WSConnectionError {}
+impl From<serde_json::Error> for WSConnectionError {
+    fn from(err: serde_json::Error) -> Self {
+        Self::ParseError(err)
+    }
+}
+
 impl InputValueError {
     #[allow(missing_docs)]
     pub fn into_error(self, pos: Pos, expected_type: String) -> Error {
@@ -78,11 +106,8 @@ impl FieldError {
 /// FieldResult type
 pub type FieldResult<T> = std::result::Result<T, FieldError>;
 
-impl<E> From<E> for FieldError
-where
-    E: std::fmt::Display + Send + Sync + 'static,
-{
-    fn from(err: E) -> Self {
+impl From<WSConnectionError> for FieldError {
+    fn from(err: WSConnectionError) -> Self {
         FieldError(format!("{}", err), None)
     }
 }
@@ -105,13 +130,13 @@ where
                 if let Some(cb_res_map) = cb_res.as_object_mut() {
                     base_map.append(cb_res_map);
                 }
-                return FieldError(name, Some(serde_json::json!(base_map)));
+                FieldError(name, Some(serde_json::json!(base_map)))
             } else {
-                return FieldError(name, Some(cb_res));
+                FieldError(name, Some(cb_res))
             }
+        } else {
+            FieldError(name, Some(cb(&self)))
         }
-
-        FieldError(name, Some(cb(&self)))
     }
 }
 

@@ -7,15 +7,15 @@ pub async fn test_fieldresult() {
     #[Object]
     impl Query {
         async fn error(&self) -> FieldResult<i32> {
-            Err("TestError".into())
+            Err(FieldError("TestError".into(), None))
         }
 
         async fn opt_error(&self) -> Option<FieldResult<i32>> {
-            Some(Err("TestError".into()))
+            Some(Err(FieldError("TestError".into(), None)))
         }
 
         async fn vec_error(&self) -> Vec<FieldResult<i32>> {
-            vec![Ok(1), Err("TestError".into())]
+            vec![Ok(1), Err(FieldError("TestError".into(), None))]
         }
     }
 

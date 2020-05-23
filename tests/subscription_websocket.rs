@@ -79,7 +79,7 @@ pub async fn test_subscription_ws_transport_with_token() {
     impl SubscriptionRoot {
         async fn values(&self, ctx: &Context<'_>) -> FieldResult<impl Stream<Item = i32>> {
             if ctx.data::<Token>().0 != "123456" {
-                return Err("forbidden".into());
+                return Err(FieldError("forbidden".into(), None));
             }
             Ok(futures::stream::iter(0..10))
         }
@@ -157,7 +157,7 @@ pub async fn test_subscription_ws_transport_error() {
             if self.value < 5 {
                 Ok(self.value)
             } else {
-                Err("TestError".into())
+                Err(FieldError("TestError".into(), None))
             }
         }
     }

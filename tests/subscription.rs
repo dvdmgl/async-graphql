@@ -218,7 +218,7 @@ pub async fn test_subscription_with_token() {
     impl SubscriptionRoot {
         async fn values(&self, ctx: &Context<'_>) -> FieldResult<impl Stream<Item = i32>> {
             if ctx.data::<Token>().0 != "123456" {
-                return Err("forbidden".into());
+                return Err(FieldError("forbidden".into(), None));
             }
             Ok(futures::stream::once(async move { 100 }))
         }
@@ -443,7 +443,7 @@ pub async fn test_subscription_error() {
             if self.value < 5 {
                 Ok(self.value)
             } else {
-                Err("TestError".into())
+                Err(FieldError("TestError".into(), None))
             }
         }
     }
@@ -508,9 +508,9 @@ pub async fn test_subscription_fieldresult() {
         async fn values(&self) -> impl Stream<Item = FieldResult<i32>> {
             futures::stream::iter(0..5)
                 .map(FieldResult::Ok)
-                .chain(futures::stream::once(
-                    async move { Err("StreamErr".into()) },
-                ))
+                .chain(futures::stream::once(async move {
+                    Err(FieldError("StreamErr".into(), None))
+                }))
         }
     }
 
